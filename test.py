@@ -23,10 +23,10 @@ while 1:
         print('Cannot find this word')
         continue
     embedding=all_embeddings[wid:wid+1]
-    print(embedding)
-    print(embedding.shape)
     d = cosine_similarity(embedding, all_embeddings)[0]
     d=zip(all_words, d)
     d=sorted(d, key=lambda x:x[1], reverse=True)
     for w in d[:10]:
+        if len(w[0])<2:
+            continue
         print(w)
