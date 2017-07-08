@@ -5,9 +5,28 @@ numpy.random.seed(12345)
 
 
 class InputData:
-    def __init__(self, fname):
-        self.input_file_name = fname
+    """Store data for word2vec, such as word map, huffman tree, sampling table and so on.
 
+    Attributes:
+        word_frequency: Count of each word, used for filtering low-frequency words and sampling table
+        word2id: Map from word to word id, without low-frequency words.
+        id2word: Map from word id to word, without low-frequency words.
+        sentence_count: Sentence count in files.
+        word_count: Word count in files, without low-frequency words.
+    """
+
+    def __init__(self, file_name, min_count):
+        self.get_words(file_name, min_count)
+        self.word_pair_catch = deque()
+        self.init_sample_table()
+        tree = HuffmanTree(self.word_frequency)
+        self.huffman_positive, self.huffman_negative = tree.get_huffman_code_and_path(
+        )
+        print('Word Count: %d' % len(self.word2id))
+        print('Sentence Length: %d' % (self.sentence_length))
+
+    def get_words(self, file_name, min_count):
+        self.input_file_name = file_name
         self.input_file = open(self.input_file_name)
         self.sentence_length = 0
         self.sentence_count = 0
@@ -24,10 +43,9 @@ class InputData:
         self.word2id = dict()
         self.id2word = dict()
         wid = 0
-        print('Sentence Length: %d' % (self.sentence_length))
         self.word_frequency = dict()
         for w, c in word_frequency.items():
-            if c < 5:
+            if c < min_count:
                 self.sentence_length -= c
                 continue
             self.word2id[w] = wid
@@ -35,17 +53,6 @@ class InputData:
             self.word_frequency[wid] = c
             wid += 1
         self.word_count = len(self.word2id)
-        print('Word Count: %d' % len(self.word2id))
-        print('Sentence Length: %d' % (self.sentence_length))
-        print('Sentence Length: %d' % sum(self.word_frequency.values()))
-        self.word_pair_catch = deque()
-        self.readed_sentence_count = 0
-        self.init_sample_table()
-        tree = HuffmanTree(self.word_frequency)
-        self.huffman_positive, self.huffman_negative = tree.get_huffman_code_and_path(
-        )
-        print('---------')
-        print(len(self.huffman_positive))
 
     def init_sample_table(self):
         self.sample_table = []
@@ -59,10 +66,8 @@ class InputData:
         self.sample_table = numpy.array(self.sample_table)
 
     # @profile
-    def get_batch_pairs(self, batch_size):
-        if len(self.word_pair_catch) < batch_size:
-            # print('Readed Sentence Count: %d' % self.readed_sentence_count)
-            self.readed_sentence_count += 10000
+    def get_batch_pairs(self, batch_size, window_size):
+        while len(self.word_pair_catch) < batch_size:
             for _ in range(10000):
                 sentence = self.input_file.readline()
                 if sentence is None or sentence == '':
@@ -75,13 +80,13 @@ class InputData:
                     except:
                         continue
                 for i, u in enumerate(word_ids):
-                    for j, v in enumerate(word_ids[max(i - 5, 0):i + 5]):
+                    for j, v in enumerate(
+                            word_ids[max(i - window_size, 0):i + window_size]):
                         assert u < self.word_count
                         assert v < self.word_count
                         if i == j:
                             continue
                         self.word_pair_catch.append((u, v))
-            # print('Catch: %d' % len(self.word_pair_catch))
         batch_pairs = []
         for _ in range(batch_size):
             batch_pairs.append(self.word_pair_catch.popleft())
@@ -102,7 +107,6 @@ class InputData:
         a = len(self.word2id) - 1
         for i in range(len(pos_word_pair)):
             pair = pos_word_pair[i]
-            # print(pair[1])
             pos_word_pair += zip([pair[0]] *
                                  len(self.huffman_positive[pair[1]]),
                                  self.huffman_positive[pair[1]])
@@ -111,6 +115,10 @@ class InputData:
                                  self.huffman_negative[pair[1]])
 
         return pos_word_pair, neg_word_pair
+
+    def evaluate_pair_count(self, window_size):
+        return self.sentence_length * (2 * window_size - 1) - (
+            self.sentence_count - 1) * (1 + window_size) * window_size
 
 
 def test():

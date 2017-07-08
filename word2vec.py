@@ -16,47 +16,76 @@ class Word2Vec:
                  emb_dimension=100,
                  batch_size=100,
                  window_size=5,
-                 iteration=1):
-        self.data = InputData(input_file_name)
+                 iteration=5,
+                 initial_lr=0.025,
+                 min_count=5,
+                 using_hs=False):
+        """Initilize class parameters.
+
+        Args:
+            input_file_name: Name of a text data from file. Each line is a sentence splited with space.
+            output_file_name: Name of the final embedding file.
+            emb_dimention: Embedding dimention, typically from 50 to 500.
+            batch_size: The count of word pairs for one forward.
+            window_size: Max skip length between words.
+            iteration: Control the multiple training iterations.
+            initial_lr: Initial learning rate.
+            min_count: The minimal word frequency, words with lower frequency will be filtered.
+            using_hs: Whether using hierarchical softmax.
+
+        Returns:
+            None.
+        """
+        self.data = InputData(input_file_name, min_count)
         self.output_file_name = output_file_name
         self.emb_size = len(self.data.word2id)
         self.emb_dimension = emb_dimension
         self.batch_size = batch_size
         self.window_size = window_size
         self.iteration = iteration
+        self.initial_lr = initial_lr
+        self.using_hs = using_hs
         self.skip_gram_model = SkipGramModel(self.emb_size, self.emb_dimension)
-        self.optimizer = optim.SGD(self.skip_gram_model.parameters(), lr=0.025)
+        self.optimizer = optim.SGD(
+            self.skip_gram_model.parameters(), lr=self.initial_lr)
 
     # @profile
     def train(self):
-        pair_count = self.data.sentence_length * (2 * self.window_size - 1) - (
-            self.data.sentence_count - 1) * (1 + self.window_size
-                                             ) * self.window_size
-        print('Pair count: %d' % pair_count)
+        """Multiple training.
+
+        Returns:
+            None.
+        """
+        pair_count = self.data.evaluate_pair_count(self.window_size)
         batch_count = self.iteration * pair_count / self.batch_size
         process_bar = tqdm(range(batch_count))
         self.skip_gram_model.save_embedding(self.data.id2word,
                                             'begin_embedding.txt')
         for i in process_bar:
-            pos_pairs = self.data.get_batch_pairs(self.batch_size)
-            # pos_pairs, neg_pairs = self.data.get_pairs_by_neg_sampling(
-            #     pos_pairs, 5)
-            #
-            pos_pairs, neg_pairs = self.data.get_pairs_by_huffman(pos_pairs)
+            pos_pairs = self.data.get_batch_pairs(self.batch_size,
+                                                  self.window_size)
+            if self.using_hs:
+                pos_pairs, neg_pairs = self.data.get_pairs_by_huffman(
+                    pos_pairs)
+            else:
+                pos_pairs, neg_pairs = self.data.get_pairs_by_neg_sampling(
+                    pos_pairs, 5)
+
             pos_u = [pair[0] for pair in pos_pairs]
             pos_v = [pair[1] for pair in pos_pairs]
             neg_u = [pair[0] for pair in neg_pairs]
             neg_v = [pair[1] for pair in neg_pairs]
+
             self.optimizer.zero_grad()
             loss = self.skip_gram_model.forward(pos_u, pos_v, neg_u, neg_v)
             loss.backward()
             self.optimizer.step()
 
             process_bar.set_description(
-                "Loss: %0.5f, lr: %0.6f" %
+                "Loss: %0.8f, lr: %0.6f" %
                 (loss.data[0], self.optimizer.param_groups[0]['lr']))
             if i * self.batch_size % 100000 == 0:
-                lr = 0.025 * (1.0 - 1.0 * i / batch_count)
+                lr = self.initial_lr * (1.0 - 1.0 * i / batch_count)
                 for param_group in self.optimizer.param_groups:
                     param_group['lr'] = lr
         self.skip_gram_model.save_embedding(self.data.id2word,
