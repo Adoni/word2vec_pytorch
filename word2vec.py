@@ -11,12 +11,14 @@ import sys
 
 class Word2Vec:
     def __init__(self,
-                 input_file,
+                 input_file_name,
+                 output_file_name,
                  emb_dimension=100,
                  batch_size=100,
                  window_size=5,
                  iteration=1):
-        self.data = InputData(input_file)
+        self.data = InputData(input_file_name)
+        self.output_file_name = output_file_name
         self.emb_size = len(self.data.word2id)
         self.emb_dimension = emb_dimension
         self.batch_size = batch_size
@@ -36,12 +38,15 @@ class Word2Vec:
         self.skip_gram_model.save_embedding(self.data.id2word,
                                             'begin_embedding.txt')
         for i in process_bar:
-            pos_word_pairs = self.data.get_batch_pairs(self.batch_size)
-            neg_word_pair = self.data.negative_sampling(pos_word_pairs, 5)
-            pos_u = [pair[0] for pair in pos_word_pairs]
-            pos_v = [pair[1] for pair in pos_word_pairs]
-            neg_u = [pair[0] for pair in neg_word_pair]
-            neg_v = [pair[1] for pair in neg_word_pair]
+            pos_pairs = self.data.get_batch_pairs(self.batch_size)
+            # pos_pairs, neg_pairs = self.data.get_pairs_by_neg_sampling(
+            #     pos_pairs, 5)
+            #
+            pos_pairs, neg_pairs = self.data.get_pairs_by_huffman(pos_pairs)
+            pos_u = [pair[0] for pair in pos_pairs]
+            pos_v = [pair[1] for pair in pos_pairs]
+            neg_u = [pair[0] for pair in neg_pairs]
+            neg_v = [pair[1] for pair in neg_pairs]
             self.optimizer.zero_grad()
             loss = self.skip_gram_model.forward(pos_u, pos_v, neg_u, neg_v)
             loss.backward()
@@ -55,9 +60,9 @@ class Word2Vec:
                 for param_group in self.optimizer.param_groups:
                     param_group['lr'] = lr
         self.skip_gram_model.save_embedding(self.data.id2word,
-                                            'end_embedding.txt')
+                                            self.output_file_name)
 
 
 if __name__ == '__main__':
-    w2v = Word2Vec(input_file=sys.argv[1])
+    w2v = Word2Vec(input_file_name=sys.argv[1], output_file_name=sys.argv[2])
     w2v.train()

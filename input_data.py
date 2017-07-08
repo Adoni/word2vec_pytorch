@@ -1,5 +1,6 @@
 import numpy
 from collections import deque
+from huffman import HuffmanTree
 numpy.random.seed(12345)
 
 
@@ -33,12 +34,18 @@ class InputData:
             self.id2word[wid] = w
             self.word_frequency[wid] = c
             wid += 1
+        self.word_count = len(self.word2id)
         print('Word Count: %d' % len(self.word2id))
         print('Sentence Length: %d' % (self.sentence_length))
         print('Sentence Length: %d' % sum(self.word_frequency.values()))
         self.word_pair_catch = deque()
         self.readed_sentence_count = 0
         self.init_sample_table()
+        tree = HuffmanTree(self.word_frequency)
+        self.huffman_positive, self.huffman_negative = tree.get_huffman_code_and_path(
+        )
+        print('---------')
+        print(len(self.huffman_positive))
 
     def init_sample_table(self):
         self.sample_table = []
@@ -69,6 +76,8 @@ class InputData:
                         continue
                 for i, u in enumerate(word_ids):
                     for j, v in enumerate(word_ids[max(i - 5, 0):i + 5]):
+                        assert u < self.word_count
+                        assert v < self.word_count
                         if i == j:
                             continue
                         self.word_pair_catch.append((u, v))
@@ -79,14 +88,29 @@ class InputData:
         return batch_pairs
 
     # @profile
-    def negative_sampling(self, pos_word_pair, count):
+    def get_pairs_by_neg_sampling(self, pos_word_pair, count):
         neg_word_pair = []
         a = len(self.word2id) - 1
         for pair in pos_word_pair:
             i = 0
             neg_v = numpy.random.choice(self.sample_table, size=count)
             neg_word_pair += zip([pair[0]] * count, neg_v)
-        return neg_word_pair
+        return pos_word_pair, neg_word_pair
+
+    def get_pairs_by_huffman(self, pos_word_pair):
+        neg_word_pair = []
+        a = len(self.word2id) - 1
+        for i in range(len(pos_word_pair)):
+            pair = pos_word_pair[i]
+            # print(pair[1])
+            pos_word_pair += zip([pair[0]] *
+                                 len(self.huffman_positive[pair[1]]),
+                                 self.huffman_positive[pair[1]])
+            neg_word_pair += zip([pair[0]] *
+                                 len(self.huffman_negative[pair[1]]),
+                                 self.huffman_negative[pair[1]])
+
+        return pos_word_pair, neg_word_pair
 
 
 def test():
