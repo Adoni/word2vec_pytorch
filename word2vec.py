@@ -14,9 +14,9 @@ class Word2Vec:
                  input_file_name,
                  output_file_name,
                  emb_dimension=100,
-                 batch_size=100,
+                 batch_size=50,
                  window_size=5,
-                 iteration=5,
+                 iteration=1,
                  initial_lr=0.025,
                  min_count=5,
                  using_hs=False):
@@ -49,7 +49,7 @@ class Word2Vec:
         self.optimizer = optim.SGD(
             self.skip_gram_model.parameters(), lr=self.initial_lr)
 
-    # @profile
+    @profile
     def train(self):
         """Multiple training.
 
