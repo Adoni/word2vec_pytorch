@@ -1,11 +1,10 @@
 import numpy
 from collections import deque
-from huffman import HuffmanTree
 numpy.random.seed(12345)
 
 
 class InputData:
-    """Store data for word2vec, such as word map, huffman tree, sampling table and so on.
+    """Store data for word2vec, such as word map, sampling table and so on.
 
     Attributes:
         word_frequency: Count of each word, used for filtering low-frequency words and sampling table
@@ -16,17 +15,14 @@ class InputData:
     """
 
     def __init__(self, file_name, min_count):
-        self.get_words(file_name, min_count)
+        self.input_file_name = file_name
+        self.get_words(min_count)
         self.word_pair_catch = deque()
         self.init_sample_table()
-        tree = HuffmanTree(self.word_frequency)
-        self.huffman_positive, self.huffman_negative = tree.get_huffman_code_and_path(
-        )
         print('Word Count: %d' % len(self.word2id))
         print('Sentence Length: %d' % (self.sentence_length))
 
-    def get_words(self, file_name, min_count):
-        self.input_file_name = file_name
+    def get_words(self, min_count):
         self.input_file = open(self.input_file_name)
         self.sentence_length = 0
         self.sentence_count = 0
@@ -57,7 +53,7 @@ class InputData:
     def init_sample_table(self):
         self.sample_table = []
         sample_table_size = 1e8
-        pow_frequency = numpy.array(self.word_frequency.values())**0.75
+        pow_frequency = numpy.array(list(self.word_frequency.values()))**0.75
         words_pow = sum(pow_frequency)
         ratio = pow_frequency / words_pow
         count = numpy.round(ratio * sample_table_size)
@@ -98,23 +94,9 @@ class InputData:
         a = len(self.word2id) - 1
         for pair in pos_word_pair:
             i = 0
-            neg_v = numpy.random.choice(self.sample_table, size=count)
-            neg_word_pair += zip([pair[0]] * count, neg_v)
-        return pos_word_pair, neg_word_pair
-
-    def get_pairs_by_huffman(self, pos_word_pair):
-        neg_word_pair = []
-        a = len(self.word2id) - 1
-        for i in range(len(pos_word_pair)):
-            pair = pos_word_pair[i]
-            pos_word_pair += zip([pair[0]] *
-                                 len(self.huffman_positive[pair[1]]),
-                                 self.huffman_positive[pair[1]])
-            neg_word_pair += zip([pair[0]] *
-                                 len(self.huffman_negative[pair[1]]),
-                                 self.huffman_negative[pair[1]])
-
-        return pos_word_pair, neg_word_pair
+            neg_v = numpy.random.choice(self.sample_table, size=count).tolist()
+            neg_word_pair.append(neg_v)
+        return neg_word_pair
 
     def evaluate_pair_count(self, window_size):
         return self.sentence_length * (2 * window_size - 1) - (

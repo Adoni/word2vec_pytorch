@@ -30,10 +30,8 @@ class SkipGramModel(nn.Module):
         super(SkipGramModel, self).__init__()
         self.emb_size = emb_size
         self.emb_dimension = emb_dimension
-        self.u_embeddings = nn.Embedding(
-            2 * emb_size - 1, emb_dimension, sparse=True)
-        self.v_embeddings = nn.Embedding(
-            2 * emb_size - 1, emb_dimension, sparse=True)
+        self.u_embeddings = nn.Embedding(emb_size, emb_dimension, sparse=True)
+        self.v_embeddings = nn.Embedding(emb_size, emb_dimension, sparse=True)
         self.init_emb()
 
     def init_emb(self):
@@ -69,9 +67,10 @@ class SkipGramModel(nn.Module):
         score = torch.sum(score, dim=1)
         score = F.logsigmoid(score)
         losses.append(sum(score))
-        neg_emb_u = self.u_embeddings(Variable(torch.LongTensor(neg_u)))
+        # neg_emb_u = self.u_embeddings(Variable(torch.LongTensor(neg_u)))
         neg_emb_v = self.v_embeddings(Variable(torch.LongTensor(neg_v)))
-        neg_score = torch.mul(neg_emb_u, neg_emb_v)
+        # neg_score = torch.mul(neg_emb_u, neg_emb_v)
+        neg_score = torch.bmm(neg_emb_v, emb_u.unsqueeze(2))
         neg_score = torch.sum(neg_score, dim=1)
         neg_score = F.logsigmoid(-1 * neg_score)
         losses.append(sum(neg_score))
