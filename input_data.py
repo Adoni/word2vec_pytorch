@@ -64,39 +64,34 @@ class InputData:
     # @profile
     def get_batch_pairs(self, batch_size, window_size):
         while len(self.word_pair_catch) < batch_size:
-            for _ in range(10000):
+            sentence = self.input_file.readline()
+            if sentence is None or sentence == '':
+                self.input_file = open(self.input_file_name)
                 sentence = self.input_file.readline()
-                if sentence is None or sentence == '':
-                    self.input_file = open(self.input_file_name)
-                    sentence = self.input_file.readline()
-                word_ids = []
-                for word in sentence.strip().split(' '):
-                    try:
-                        word_ids.append(self.word2id[word])
-                    except:
+            word_ids = []
+            for word in sentence.strip().split(' '):
+                try:
+                    word_ids.append(self.word2id[word])
+                except:
+                    continue
+            for i, u in enumerate(word_ids):
+                for j, v in enumerate(
+                        word_ids[max(i - window_size, 0):i + window_size]):
+                    assert u < self.word_count
+                    assert v < self.word_count
+                    if i == j:
                         continue
-                for i, u in enumerate(word_ids):
-                    for j, v in enumerate(
-                            word_ids[max(i - window_size, 0):i + window_size]):
-                        assert u < self.word_count
-                        assert v < self.word_count
-                        if i == j:
-                            continue
-                        self.word_pair_catch.append((u, v))
+                    self.word_pair_catch.append((u, v))
         batch_pairs = []
         for _ in range(batch_size):
             batch_pairs.append(self.word_pair_catch.popleft())
         return batch_pairs
 
     # @profile
-    def get_pairs_by_neg_sampling(self, pos_word_pair, count):
-        neg_word_pair = []
-        a = len(self.word2id) - 1
-        for pair in pos_word_pair:
-            i = 0
-            neg_v = numpy.random.choice(self.sample_table, size=count).tolist()
-            neg_word_pair.append(neg_v)
-        return neg_word_pair
+    def get_neg_v_neg_sampling(self, pos_word_pair, count):
+        neg_v = numpy.random.choice(
+            self.sample_table, size=(len(pos_word_pair), count)).tolist()
+        return neg_v
 
     def evaluate_pair_count(self, window_size):
         return self.sentence_length * (2 * window_size - 1) - (

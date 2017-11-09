@@ -60,16 +60,12 @@ class Word2Vec:
         for i in process_bar:
             pos_pairs = self.data.get_batch_pairs(self.batch_size,
                                                   self.window_size)
-            neg_pairs = self.data.get_pairs_by_neg_sampling(pos_pairs, 5)
-
+            neg_v = self.data.get_neg_v_neg_sampling(pos_pairs, 5)
             pos_u = [pair[0] for pair in pos_pairs]
             pos_v = [pair[1] for pair in pos_pairs]
-            # neg_u = [pair[0] for pair in neg_pairs]
-            # neg_v = [pair[1] for pair in neg_pairs]
 
             self.optimizer.zero_grad()
-            loss = self.skip_gram_model.forward(pos_u, pos_v, neg_pairs,
-                                                neg_pairs)
+            loss = self.skip_gram_model.forward(pos_u, pos_v, neg_v)
             loss.backward()
             self.optimizer.step()
 
