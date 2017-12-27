@@ -88,8 +88,8 @@ class Word2Vec:
                 lr = self.initial_lr * (1.0 - 1.0 * i / batch_count)
                 for param_group in self.optimizer.param_groups:
                     param_group['lr'] = lr
-        self.skip_gram_model.save_embedding(self.data.id2word,
-                                            self.output_file_name)
+        self.skip_gram_model.save_embedding(
+            self.data.id2word, self.output_file_name, self.use_cuda)
 
 
 if __name__ == '__main__':
