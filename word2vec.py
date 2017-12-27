@@ -59,8 +59,8 @@ class Word2Vec:
         pair_count = self.data.evaluate_pair_count(self.window_size)
         batch_count = self.iteration * pair_count / self.batch_size
         process_bar = tqdm(range(int(batch_count)))
-        self.skip_gram_model.save_embedding(self.data.id2word,
-                                            'begin_embedding.txt')
+        # self.skip_gram_model.save_embedding(
+        #     self.data.id2word, 'begin_embedding.txt', self.use_cuda)
         for i in process_bar:
             pos_pairs = self.data.get_batch_pairs(self.batch_size,
                                                   self.window_size)
