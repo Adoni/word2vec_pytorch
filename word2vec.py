@@ -43,9 +43,13 @@ class Word2Vec:
         self.iteration = iteration
         self.initial_lr = initial_lr
         self.skip_gram_model = SkipGramModel(self.emb_size, self.emb_dimension)
+        self.use_cuda = torch.cuda.is_available()
+        if self.use_cuda:
+            self.skip_gram_model.cuda()
         self.optimizer = optim.SGD(
             self.skip_gram_model.parameters(), lr=self.initial_lr)
 
+    @profile
     def train(self):
         """Multiple training.
 
@@ -63,6 +67,14 @@ class Word2Vec:
             neg_v = self.data.get_neg_v_neg_sampling(pos_pairs, 5)
             pos_u = [pair[0] for pair in pos_pairs]
             pos_v = [pair[1] for pair in pos_pairs]
+
+            pos_u = Variable(torch.LongTensor(pos_u))
+            pos_v = Variable(torch.LongTensor(pos_v))
+            neg_v = Variable(torch.LongTensor(neg_v))
+            if self.use_cuda:
+                pos_u = pos_u.cuda()
+                pos_v = pos_v.cuda()
+                neg_v = neg_v.cuda()
 
             self.optimizer.zero_grad()
             loss = self.skip_gram_model.forward(pos_u, pos_v, neg_v)

@@ -61,13 +61,13 @@ class SkipGramModel(nn.Module):
             Loss of this process, a pytorch variable.
         """
         losses = []
-        emb_u = self.u_embeddings(Variable(torch.LongTensor(pos_u)))
-        emb_v = self.v_embeddings(Variable(torch.LongTensor(pos_v)))
+        emb_u = self.u_embeddings(pos_u)
+        emb_v = self.v_embeddings(pos_v)
         score = torch.mul(emb_u, emb_v).squeeze()
         score = torch.sum(score, dim=1)
         score = F.logsigmoid(score)
         losses.append(sum(score))
-        neg_emb_v = self.v_embeddings(Variable(torch.LongTensor(neg_v)))
+        neg_emb_v = self.v_embeddings(neg_v)
         neg_score = torch.bmm(neg_emb_v, emb_u.unsqueeze(2)).squeeze()
         neg_score = torch.sum(neg_score, dim=1)
         neg_score = F.logsigmoid(-1 * neg_score)
