@@ -74,7 +74,7 @@ class SkipGramModel(nn.Module):
         losses.append(sum(neg_score))
         return -1 * sum(losses)
 
-    def save_embedding(self, id2word, file_name):
+    def save_embedding(self, id2word, file_name, use_cuda):
         """Save all embeddings to file.
 
         As this class only record word id, so the map from id to word has to be transfered from outside.
@@ -85,7 +85,10 @@ class SkipGramModel(nn.Module):
         Returns:
             None.
         """
-        embedding = self.u_embeddings.weight.data.numpy()
+        if use_cuda:
+            embedding = self.u_embeddings.weight.cup().data.numpy()
+        else:
+            embedding = self.u_embeddings.weight.data.numpy()
         fout = open(file_name, 'w')
         fout.write('%d %d\n' % (len(id2word), self.emb_dimension))
         for wid, w in id2word.items():
