@@ -49,7 +49,6 @@ class Word2Vec:
         self.optimizer = optim.SGD(
             self.skip_gram_model.parameters(), lr=self.initial_lr)
 
-    @profile
     def train(self):
         """Multiple training.
 
