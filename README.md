@@ -1,6 +1,8 @@
 Word2vec-PyTorch
 ====
 
+**Warning: this repo is poseted two years ago and it's not compatible with the current pytorch (v1.0.0). **
+
 This is the implementation of word2vec based on PyTorch.
 
 Run it with
