@@ -23,7 +23,7 @@ class InputData:
         print('Sentence Length: %d' % (self.sentence_length))
 
     def get_words(self, min_count):
-        self.input_file = open(self.input_file_name)
+        self.input_file = open(self.input_file_name, 'r', encoding='utf-8', errors='ignore')
         self.sentence_length = 0
         self.sentence_count = 0
         word_frequency = dict()
@@ -66,7 +66,7 @@ class InputData:
         while len(self.word_pair_catch) < batch_size:
             sentence = self.input_file.readline()
             if sentence is None or sentence == '':
-                self.input_file = open(self.input_file_name)
+                self.input_file = open(self.input_file_name, 'r', encoding='utf-8', errors='ignore')
                 sentence = self.input_file.readline()
             word_ids = []
             for word in sentence.strip().split(' '):
@@ -79,7 +79,7 @@ class InputData:
                         word_ids[max(i - window_size, 0):i + window_size]):
                     assert u < self.word_count
                     assert v < self.word_count
-                    if i == j:
+                    if u == v:
                         continue
                     self.word_pair_catch.append((u, v))
         batch_pairs = []
