@@ -85,7 +85,7 @@ class SkipGramModel(nn.Module):
             embedding = self.u_embeddings.weight.cpu().data.numpy()
         else:
             embedding = self.u_embeddings.weight.data.numpy()
-        fout = open(file_name, 'w')
+        fout = open(file_name, 'w',encoding='utf-8',errors='ignore')
         fout.write('%d %d\n' % (len(id2word), self.emb_dimension))
         for wid, w in id2word.items():
             e = embedding[wid]
